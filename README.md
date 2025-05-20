@@ -1,4 +1,5 @@
 # Image Filter Application
+![image](https://github.com/user-attachments/assets/a4a3d274-8dd0-4124-980d-087b28f314c7)
 
 ## Overview
 This is a Windows Forms application developed in C# that allows users to filter and categorize image files (.jpg) into "verified" and "removed" groups. The application helps users quickly process large batches of images by facilitating easy reviewing and sorting with keyboard shortcuts. It is commonly used for manually filtering and cleaning image datasets for machine learning projects.
