@@ -22,6 +22,8 @@ namespace Filter_Images
         private List<string> unprocessedFiles = new List<string>();
         private string pathToFolder = null;
         private string pathToJson = null;
+        private Stack<(string filename, string action)> historyStack = new Stack<(string, string)>();
+
 
         public Form1()
         {
@@ -29,7 +31,8 @@ namespace Filter_Images
             this.KeyPreview = true;
             this.folderTxt.PreviewKeyDown += InputBox_PreviewKeyDown;
             this.jsonTxt.PreviewKeyDown += InputBox_PreviewKeyDown;
-            MessageBox.Show("Bấm phím lui hoặc xuống để bỏ \n Bấm phím tới hoặc lên để giữ lại", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("→ hoặc ↑: giữ lại\n← hoặc ↓: loại bỏ\nCtrl+Z: quay lại ảnh trước\nCtrl+S: lưu dữ liệu",
+                "Hướng dẫn", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         private void InputBox_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
@@ -140,7 +143,8 @@ namespace Filter_Images
                 return;
             }
 
-            string currentFile = unprocessedFiles[0]; // Lấy ảnh đầu tiên
+            string currentFile = unprocessedFiles[0];
+
             if (action == "remove")
             {
                 removedList.Add(currentFile);
@@ -152,10 +156,12 @@ namespace Filter_Images
                 verifiedCount++;
             }
 
-            unprocessedFiles.RemoveAt(0); // Xóa khỏi danh sách chưa xử lý
-            updateCount(); // Cập nhật UI
+            // Lưu vào stack
+            historyStack.Push((currentFile, action));
 
-            ShowNextImage(); // Hiển thị ảnh tiếp theo
+            unprocessedFiles.RemoveAt(0);
+            updateCount();
+            ShowNextImage();
         }
 
 
@@ -216,10 +222,47 @@ namespace Filter_Images
             }
         }
 
+        private void UndoLastAction()
+        {
+            if (historyStack.Count == 0)
+            {
+                MessageBox.Show("Không có thao tác nào để quay lại.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var (filename, action) = historyStack.Pop();
+
+            if (action == "remove" && removedList.Contains(filename))
+            {
+                removedList.Remove(filename);
+                removedCount--;
+            }
+            else if (action == "verify" && verifiedList.Contains(filename))
+            {
+                verifiedList.Remove(filename);
+                verifiedCount--;
+            }
+
+            // Thêm lại ảnh vào đầu danh sách chưa xử lý
+            unprocessedFiles.Insert(0, filename);
+
+            updateCount();
+            ShowNextImage();
+        }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Left || e.KeyCode == Keys.Down)
+            if (e.Control && e.KeyCode == Keys.Z)
+            {
+                UndoLastAction();
+                e.SuppressKeyPress = true;  // Ngăn hành vi mặc định
+            }
+            else if (e.Control && e.KeyCode == Keys.S)
+            {
+                saveBtn.PerformClick();  // Giả lập nút Save được nhấn
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.Left || e.KeyCode == Keys.Down)
             {
                 HandleCurrentImage("remove");
             }
